@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [{ "command": "npm run steno:ingest --silent" }],
+    "sessionEnd": [{ "command": "npm run steno:ingest --silent" }],
+    "preToolUse": [{ "command": "npm run steno:ingest --silent" }],
+    "postToolUse": [{ "command": "npm run steno:ingest --silent" }],
+    "postToolUseFailure": [
+      { "command": "npm run steno:ingest --silent" }
+    ],
+    "subagentStart": [{ "command": "npm run steno:ingest --silent" }],
+    "subagentStop": [{ "command": "npm run steno:ingest --silent" }],
+    "beforeShellExecution": [
+      { "command": "npm run steno:ingest --silent" }
+    ],
+    "afterShellExecution": [
+      { "command": "npm run steno:ingest --silent" }
+    ],
+    "beforeMCPExecution": [
+      { "command": "npm run steno:ingest --silent" }
+    ],
+    "afterMCPExecution": [
+      { "command": "npm run steno:ingest --silent" }
+    ],
+    "beforeReadFile": [{ "command": "npm run steno:ingest --silent" }],
+    "afterFileEdit": [{ "command": "npm run steno:ingest --silent" }],
+    "beforeSubmitPrompt": [
+      { "command": "npm run steno:ingest --silent" }
+    ],
+    "preCompact": [{ "command": "npm run steno:ingest --silent" }],
+    "stop": [{ "command": "npm run steno:ingest --silent" }],
+    "afterAgentResponse": [
+      { "command": "npm run steno:ingest --silent" }
+    ],
+    "afterAgentThought": [{ "command": "npm run steno:ingest --silent" }]
+  }
+}

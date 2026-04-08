@@ -1,0 +1,12 @@
+{
+  "hook_event_name": "afterAgentResponse",
+  "conversation_id": "00000000-0000-4000-8000-000000000001",
+  "generation_id": "00000000-0000-4000-8000-000000000002",
+  "model": "gpt-4o",
+  "text": "Done.",
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 25
+  },
+  "workspace_roots": ["/path/to/project"]
+}

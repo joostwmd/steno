@@ -1,0 +1,37 @@
+{
+  "name": "steno",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "steno": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm run build:deps && node build.mjs",
+    "build:deps": "pnpm --filter @steno/core build && pnpm --filter @steno/db build && pnpm --filter @steno/api build",
+    "prepack": "pnpm run build"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@trpc/server": "^11.0.1",
+    "better-sqlite3": "^11.8.1",
+    "drizzle-orm": "^0.39.3",
+    "hono": "^4.6.14",
+    "jiti": "^2.4.2",
+    "js-tiktoken": "^1.0.21",
+    "prompts": "^2.4.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@steno/api": "workspace:*",
+    "@steno/core": "workspace:*",
+    "@steno/db": "workspace:*",
+    "@types/node": "^22.10.7",
+    "@types/prompts": "^2.4.9",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.3"
+  }
+}

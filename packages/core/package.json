@@ -1,0 +1,31 @@
+{
+  "name": "@steno/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ingest": {
+      "types": "./dist/ingest.d.ts",
+      "import": "./dist/ingest.js"
+    }
+  },
+  "scripts": {
+    "prepare": "pnpm run build",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "ingest": "node dist/ingest-cli.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  },
+  "dependencies": {
+    "jiti": "^2.4.2",
+    "js-tiktoken": "^1.0.21"
+  }
+}

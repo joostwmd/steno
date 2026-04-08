@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "futureCursorHook",
+  "conversation_id": "00000000-0000-4000-8000-000000000001",
+  "workspace_roots": ["/path/to/project"],
+  "custom_field": "kept",
+  "prompt": "this should be redacted to preview when not full"
+}

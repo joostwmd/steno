@@ -1,0 +1,160 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  @keyframes session-active-dot-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+      box-shadow:
+        0 0 0 0 rgb(59 130 246 / 0.45),
+        0 0 8px 0 rgb(59 130 246 / 0.35);
+    }
+    50% {
+      opacity: 0.88;
+      transform: scale(1.2);
+      box-shadow:
+        0 0 0 5px rgb(59 130 246 / 0),
+        0 0 14px 2px rgb(59 130 246 / 0.55);
+    }
+  }
+
+  @keyframes session-active-dot-pulse-dark {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+      box-shadow:
+        0 0 0 0 rgb(96 165 250 / 0.4),
+        0 0 8px 0 rgb(96 165 250 / 0.3);
+    }
+    50% {
+      opacity: 0.88;
+      transform: scale(1.2);
+      box-shadow:
+        0 0 0 5px rgb(96 165 250 / 0),
+        0 0 14px 2px rgb(96 165 250 / 0.5);
+    }
+  }
+
+  .animate-session-active-dot {
+    animation: session-active-dot-pulse 1.75s ease-in-out infinite;
+  }
+
+  .dark .animate-session-active-dot {
+    animation-name: session-active-dot-pulse-dark;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-session-active-dot {
+      animation: none;
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    /*
+     * Radius: align shadcn tokens with ai-elements (rounder blocks, softer chrome).
+     * Tailwind `rounded-lg` / `md` / `sm` map to --radius via tailwind.config.js.
+     * Components using var(--radius-md), var(--radius-xl), etc. resolve here too.
+     */
+    --radius: 1rem;
+    --radius-sm: calc(var(--radius) - 6px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --radius-2xl: calc(var(--radius) + 8px);
+
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    /* Slightly softer surfaces (closer to ai-element panels) */
+    --secondary: oklch(0.965 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.965 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.965 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    /* Selected session: slightly darker than sidebar / hover, not a harsh contrast */
+    --sidebar-selection: oklch(0.91 0 0);
+    --sidebar-selection-foreground: oklch(0.145 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+  }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    /* Selected session: slightly lifted above sidebar / hover */
+    --sidebar-selection: oklch(0.30 0 0);
+    --sidebar-selection-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+  body {
+    @apply antialiased dark:bg-neutral-950 dark:text-neutral-50 bg-background text-foreground leading-relaxed;
+  }
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+  }
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "conversation_id": "00000000-0000-4000-8000-000000000001",
+  "generation_id": "00000000-0000-4000-8000-000000000002",
+  "content": "# Sample file for telemetry fixtures\n",
+  "file_path": "/path/to/project/.cursor/sample.md",
+  "attachments": [],
+  "hook_event_name": "beforeReadFile",
+  "workspace_roots": ["/path/to/project"]
+}

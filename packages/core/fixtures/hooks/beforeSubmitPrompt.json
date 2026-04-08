@@ -1,0 +1,8 @@
+{
+  "hook_event_name": "beforeSubmitPrompt",
+  "conversation_id": "00000000-0000-4000-8000-000000000001",
+  "generation_id": "00000000-0000-4000-8000-000000000002",
+  "prompt": "Please refactor the ingest module for clarity.",
+  "attachments": [],
+  "workspace_roots": ["/path/to/project"]
+}

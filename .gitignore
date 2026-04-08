@@ -1,0 +1,18 @@
+# Local Cursor config (may contain machine-specific MCP / secrets)
+.cursor/mcp.json
+
+# Pack artifacts
+*.tgz
+
+# Local server / ingest noise
+apps/server/.cursor/
+packages/steno/ingest/
+
+node_modules/
+.pnpm-store/
+dist/
+packages/*/dist/
+apps/*/dist/
+/steno/*.ndjson
+/steno/*.db
+/steno/*.db-*
