@@ -5,8 +5,11 @@ import type { ChartConfig } from "@/components/ui/chart";
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart";
+import {
+  formatCompactNumber,
+  formatFullNumber,
+} from "@/lib/formatCompactNumber";
 function formatShortDay(isoDay: string): string {
   const parts = isoDay.split("-");
   if (parts.length !== 3) return isoDay;
@@ -144,15 +147,36 @@ export function GlobalDailySingleBarChart({
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                width={44}
+                width={48}
                 tick={{ fontSize: 10 }}
                 tickFormatter={(v) =>
-                  typeof v === "number" && v >= 1000
-                    ? `${Math.round(v / 1000)}k`
-                    : String(v)
+                  typeof v === "number" ? formatCompactNumber(v) : String(v)
                 }
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartTooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const raw = payload[0]?.value;
+                  const n = typeof raw === "number" ? raw : Number(raw);
+                  if (!Number.isFinite(n)) return null;
+                  return (
+                    <div className="grid min-w-[10rem] gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+                      <div className="font-medium text-foreground">{label}</div>
+                      <div className="flex items-center justify-between gap-6 tabular-nums">
+                        <span className="text-muted-foreground">
+                          {spec.label}
+                        </span>
+                        <span
+                          className="font-medium text-foreground"
+                          title={formatFullNumber(n)}
+                        >
+                          {formatCompactNumber(n)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }}
+              />
               <Bar
                 dataKey={spec.dataKey}
                 name={spec.chartKey}
@@ -244,10 +268,49 @@ export function GlobalDailyStackedPromptsRepliesChart({
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                width={40}
+                width={44}
                 tick={{ fontSize: 10 }}
+                tickFormatter={(v) =>
+                  typeof v === "number" ? formatCompactNumber(v) : String(v)
+                }
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartTooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  return (
+                    <div className="grid min-w-[10rem] gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+                      <div className="font-medium text-foreground">{label}</div>
+                      {payload.map((p) => {
+                        const raw = p.value;
+                        const n =
+                          typeof raw === "number" ? raw : Number(raw ?? 0);
+                        const name =
+                          p.dataKey === "prompts"
+                            ? "User prompts"
+                            : p.dataKey === "replies"
+                              ? "Agent replies"
+                              : String(p.name ?? p.dataKey);
+                        return (
+                          <div
+                            key={String(p.dataKey)}
+                            className="flex items-center justify-between gap-6 tabular-nums"
+                          >
+                            <span className="text-muted-foreground">
+                              {name}
+                            </span>
+                            <span
+                              className="font-medium text-foreground"
+                              title={formatFullNumber(n)}
+                            >
+                              {formatCompactNumber(n)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }}
+              />
               <Bar
                 dataKey="prompts"
                 stackId="activity"

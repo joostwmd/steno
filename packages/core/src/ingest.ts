@@ -58,8 +58,8 @@ function repoRootFromArgv(): string | undefined {
 function repoRootFromEnv(): string | undefined {
   const fromEnv =
     process.env.STENO_REPO_ROOT?.trim() ||
-    process.env.STENOGRAPHER_REPO_ROOT?.trim() ||
-    process.env.STENOGRAPHER_PROJECT?.trim() ||
+    process.env.STENO_REPO_ROOT?.trim() ||
+    process.env.STENO_PROJECT?.trim() ||
     process.env.CURSOR_PROJECT_DIR?.trim();
   if (fromEnv) return resolve(fromEnv);
   return undefined;
@@ -68,7 +68,7 @@ function repoRootFromEnv(): string | undefined {
 /** Walk up from `start` for `package.json`. */
 function repoRootFromWalk(start: string): string | undefined {
   let dir = resolve(start);
-  for (;;) {
+  for (; ;) {
     if (existsSync(join(dir, "package.json"))) {
       return dir;
     }
@@ -136,7 +136,7 @@ export async function runIngest(): Promise<void> {
       const raw = JSON.parse(text) as unknown;
       if (
         process.env.STENO_LOG_SELF_TELEMETRY !== "1" &&
-        process.env.STENOGRAPHER_LOG_SELF_TELEMETRY !== "1" &&
+        process.env.STENO_LOG_SELF_TELEMETRY !== "1" &&
         isSelfTelemetryTarget(raw, logPath, sqlitePath)
       ) {
         return;

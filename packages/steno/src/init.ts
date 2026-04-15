@@ -1,6 +1,24 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import prompts from "prompts";
+
+/** Published npm package name (scoped). */
+export const STENO_NPM_PACKAGE = "@joostwmd/steno" as const;
+
+/** Version from `packages/steno/package.json` next to the running CLI (works bundled or from source). */
+export function readInstalledStenoPackageVersion(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const pkgPath = join(here, "..", "package.json");
+  try {
+    const meta = JSON.parse(readFileSync(pkgPath, "utf8")) as {
+      version?: string;
+    };
+    return typeof meta.version === "string" ? meta.version : "0.1.0";
+  } catch {
+    return "0.1.0";
+  }
+}
 
 const HOOK_NAMES = [
   "sessionStart",
@@ -47,7 +65,7 @@ function parseInitArgs(argv: string[]): {
   let eventsPath = "steno/events.ndjson";
   let sqlitePath = "steno/steno.db";
   let port = 8787;
-  let stenoVersion = "0.1.0";
+  let stenoVersion = readInstalledStenoPackageVersion();
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -128,7 +146,7 @@ function patchPackageJson(
           private: true,
           type: "module",
           scripts: { "steno:ingest": "steno ingest" },
-          devDependencies: { steno: `^${stenoVersion}` },
+          devDependencies: { [STENO_NPM_PACKAGE]: `^${stenoVersion}` },
         },
         null,
         2,
@@ -150,8 +168,11 @@ function patchPackageJson(
   }
 
   pkg.devDependencies = pkg.devDependencies ?? {};
-  if (!pkg.devDependencies.steno) {
-    pkg.devDependencies.steno = `^${stenoVersion}`;
+  if ("steno" in pkg.devDependencies) {
+    delete pkg.devDependencies.steno;
+  }
+  if (!pkg.devDependencies[STENO_NPM_PACKAGE]) {
+    pkg.devDependencies[STENO_NPM_PACKAGE] = `^${stenoVersion}`;
   }
 
   writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");

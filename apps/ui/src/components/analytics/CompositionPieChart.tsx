@@ -1,5 +1,9 @@
 import { useMemo } from "react";
 import { Cell, Pie, PieChart } from "recharts";
+import {
+  formatCompactNumber,
+  formatFullNumber,
+} from "@/lib/formatCompactNumber";
 import type { ChartConfig } from "@/components/ui/chart";
 import {
   ChartContainer,
@@ -59,8 +63,6 @@ export function CompositionPieChart({
       }),
     [],
   );
-  const numFmt = useMemo(() => new Intl.NumberFormat(), []);
-
   if (!show || data.length === 0 || total <= 0) {
     return (
       <section
@@ -100,8 +102,12 @@ export function CompositionPieChart({
                   const payload = item?.payload as PieDatum | undefined;
                   const label = payload?.label ?? String(_name);
                   return (
-                    <span className="font-mono tabular-nums text-foreground">
-                      {label}: {numFmt.format(safe)} ({pctFmt.format(pct)}%)
+                    <span
+                      className="tabular-nums text-foreground"
+                      title={`${label}: ${formatFullNumber(safe)} (${pctFmt.format(pct)}%)`}
+                    >
+                      {label}: {formatCompactNumber(safe)} (
+                      {pctFmt.format(pct)}%)
                     </span>
                   );
                 }}

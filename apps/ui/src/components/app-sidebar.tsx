@@ -16,8 +16,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HOME_PATH, sessionPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { BarChart3, MoreVerticalIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const ACTIVE_SESSION_MS = 60_000;
 
@@ -36,9 +38,8 @@ function isSessionActiveRecently(lastEventAt: string): boolean {
 
 function SessionMenuRow({
   session: s,
-  selectedId,
+  activeSessionId,
   isPinned,
-  onSelectSession,
   onPin,
   onUnpin,
   onRequestRename,
@@ -46,9 +47,8 @@ function SessionMenuRow({
   actionsPending,
 }: {
   session: SessionRow;
-  selectedId: string | null;
+  activeSessionId: string | undefined;
   isPinned: boolean;
-  onSelectSession: (conversationId: string) => void;
   onPin: (conversationId: string) => void;
   onUnpin: (conversationId: string) => void;
   onRequestRename: (
@@ -59,39 +59,40 @@ function SessionMenuRow({
   actionsPending: boolean;
 }) {
   const recentlyActive = isSessionActiveRecently(s.lastEventAt);
-  const isSelected = selectedId === s.conversationId;
+  const isSelected = activeSessionId === s.conversationId;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
-        type="button"
+        asChild
         isActive={isSelected}
         className={cn(
           "relative h-auto min-h-0 overflow-hidden py-2 pr-11",
           isSelected ? "pl-3" : "pl-2",
           "items-center text-left",
           isSelected &&
-            "!bg-[var(--sidebar-selection)] !text-[var(--sidebar-selection-foreground)] hover:!bg-[var(--sidebar-selection)] hover:!text-[var(--sidebar-selection-foreground)]",
+          "!bg-[var(--sidebar-selection)] !text-[var(--sidebar-selection-foreground)] hover:!bg-[var(--sidebar-selection)] hover:!text-[var(--sidebar-selection-foreground)]",
         )}
-        onClick={() => onSelectSession(s.conversationId)}
       >
-        {recentlyActive ? (
-          <span
-            aria-hidden
-            title="Active in the last minute"
-            className="animate-session-active-dot size-2 shrink-0 rounded-full bg-blue-500 dark:bg-blue-400"
-          />
-        ) : null}
-        <div
-          className={cn(
-            "min-w-0 flex-1 shrink truncate text-left text-[13px] font-normal leading-tight",
-            isSelected
-              ? "text-[var(--sidebar-selection-foreground)]"
-              : "text-sidebar-foreground",
-          )}
-          title={s.label || "Untitled session"}
-        >
-          {s.label || "Untitled session"}
-        </div>
+        <Link to={sessionPath(s.conversationId)} className="flex w-full min-w-0 items-center gap-0">
+          {recentlyActive ? (
+            <span
+              aria-hidden
+              title="Events in the last minute"
+              className="animate-session-active-dot size-2 shrink-0 rounded-full bg-blue-500 dark:bg-blue-400"
+            />
+          ) : null}
+          <div
+            className={cn(
+              "min-w-0 flex-1 shrink truncate text-left text-[13px] font-normal leading-tight",
+              isSelected
+                ? "text-[var(--sidebar-selection-foreground)]"
+                : "text-sidebar-foreground",
+            )}
+            title={s.label || "Untitled session"}
+          >
+            {s.label || "Untitled session"}
+          </div>
+        </Link>
       </SidebarMenuButton>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -134,7 +135,7 @@ function SessionMenuRow({
             disabled={actionsPending}
             onSelect={() => onBlock(s.conversationId)}
           >
-            Block session
+            Ignore on import
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -143,14 +144,12 @@ function SessionMenuRow({
 }
 
 type AppSidebarProps = {
-  globalStatsId: string;
-  onSelectGlobalStats: () => void;
+  /** Current session from the URL, or `undefined` on home (global stats). */
+  activeSessionId: string | undefined;
   pinnedSessions: SessionRow[] | undefined;
   unpinnedSessions: SessionRow[] | undefined;
   isLoading: boolean;
   errorMessage: string | null;
-  selectedId: string | null;
-  onSelectSession: (conversationId: string) => void;
   onPin: (conversationId: string) => void;
   onUnpin: (conversationId: string) => void;
   onRequestRename: (
@@ -162,14 +161,11 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar({
-  globalStatsId,
-  onSelectGlobalStats,
+  activeSessionId,
   pinnedSessions,
   unpinnedSessions,
   isLoading,
   errorMessage,
-  selectedId,
-  onSelectSession,
   onPin,
   onUnpin,
   onRequestRename,
@@ -177,8 +173,7 @@ export function AppSidebar({
   actionsPending,
 }: AppSidebarProps) {
   const rowProps = {
-    selectedId,
-    onSelectSession,
+    activeSessionId,
     onPin,
     onUnpin,
     onRequestRename,
@@ -188,9 +183,12 @@ export function AppSidebar({
 
   return (
     <Sidebar>
-      <SidebarHeader className="h-14 shrink-0 flex-row items-center gap-0 border-b border-sidebar-border px-3 py-0">
+      <SidebarHeader className="min-h-14 shrink-0 flex-col items-stretch justify-center gap-0.5  px-3 py-2.5">
         <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
           Steno
+        </span>
+        <span className="text-[11px] leading-snug text-muted-foreground">
+          Local Cursor telemetry
         </span>
       </SidebarHeader>
       <SidebarContent className="min-h-0 flex-1 gap-0 overflow-y-auto">
@@ -199,22 +197,26 @@ export function AppSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  type="button"
-                  isActive={selectedId === globalStatsId}
+                  asChild
+                  isActive={activeSessionId === undefined}
                   className={cn(
                     "h-auto min-h-0 py-2 pl-2 pr-2",
-                    selectedId === globalStatsId &&
-                      "!bg-[var(--sidebar-selection)] !text-[var(--sidebar-selection-foreground)] hover:!bg-[var(--sidebar-selection)] hover:!text-[var(--sidebar-selection-foreground)]",
+                    activeSessionId === undefined &&
+                    "!bg-[var(--sidebar-selection)] !text-[var(--sidebar-selection-foreground)] hover:!bg-[var(--sidebar-selection)] hover:!text-[var(--sidebar-selection-foreground)]",
                   )}
-                  onClick={onSelectGlobalStats}
                 >
-                  <BarChart3
-                    className="size-4 shrink-0 text-sidebar-foreground/80"
-                    aria-hidden
-                  />
-                  <span className="truncate text-left text-[13px] font-medium">
-                    Global stats
-                  </span>
+                  <Link
+                    to={HOME_PATH}
+                    className="flex w-full min-w-0 items-center gap-2"
+                  >
+                    <BarChart3
+                      className="size-4 shrink-0 text-sidebar-foreground/80"
+                      aria-hidden
+                    />
+                    <span className="truncate text-left text-[13px] font-medium">
+                      Global stats
+                    </span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -226,7 +228,7 @@ export function AppSidebar({
           </p>
         ) : errorMessage ? (
           <p className="px-4 py-3 text-xs text-destructive">
-            Couldn&apos;t load sessions. {errorMessage}
+            Sessions didn&apos;t load. {errorMessage}
           </p>
         ) : (
           <>
@@ -235,7 +237,7 @@ export function AppSidebar({
               <SidebarGroupContent>
                 {!pinnedSessions?.length ? (
                   <p className="px-2 py-2 text-xs text-muted-foreground">
-                    No pinned sessions. Open the menu on a session and choose Pin.
+                    Pin a session from its ··· menu to keep it here.
                   </p>
                 ) : (
                   <SidebarMenu>
@@ -257,8 +259,8 @@ export function AppSidebar({
                 {!unpinnedSessions?.length ? (
                   <p className="px-2 py-2 text-xs text-muted-foreground">
                     {(pinnedSessions?.length ?? 0) > 0
-                      ? "No other sessions."
-                      : "No sessions yet. Generate some Cursor activity with hooks enabled, then choose Import latest."}
+                      ? "Nothing else imported yet."
+                      : "Nothing imported yet. Use hooks in Cursor, then Import latest (top right)."}
                   </p>
                 ) : (
                   <SidebarMenu>

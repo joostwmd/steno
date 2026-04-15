@@ -2,13 +2,33 @@
 
 **Steno** records [Cursor](https://cursor.com) hook telemetry: each hook sends JSON on stdin to the `steno` CLI, which appends **NDJSON** and keeps a **SQLite** database in sync for the web UI.
 
-This repository is a **pnpm monorepo**. The installable surface is the **`steno`** package (`packages/steno`): a bundled CLI plus embedded API server and static UI.
+This repository is a **pnpm monorepo**. The installable surface is the **`@joostwmd/steno`** package ([`packages/steno`](packages/steno)): a bundled CLI plus embedded API server and static UI.
 
-## Requirements
+## Install (from npm)
+
+Prerequisites: **Node.js 20+** and an environment where **`better-sqlite3`** can install (prebuilds exist for common platforms; otherwise a native build toolchain may be required).
+
+```bash
+pnpm add -D @joostwmd/steno
+# or
+npm install --save-dev @joostwmd/steno
+```
+
+The binary is still named **`steno`** (see `bin` in the package). Use **`pnpm exec steno`**, **`npx steno`**, or npm scripts that call `steno`.
+
+Scaffold config and hooks (uses the installed package version by default for `package.json`):
+
+```bash
+pnpm exec steno init
+# or
+npx steno init --yes
+```
+
+## Requirements (monorepo contributors)
 
 - **Node.js** 20+ (22 LTS recommended)
 - **pnpm** 9 (`packageManager` is pinned in root `package.json`)
-- For `npm install steno` from a tarball: a working toolchain for **`better-sqlite3`** (native compile)
+- For installs from a tarball or npm: a working toolchain for **`better-sqlite3`** when prebuilds are unavailable
 
 ## Monorepo layout
 
@@ -18,7 +38,7 @@ This repository is a **pnpm monorepo**. The installable surface is the **`steno`
 | `packages/api` | tRPC router shared by server and UI |
 | `packages/db` | Drizzle + SQLite (`better-sqlite3`), migrations in `packages/db/drizzle` |
 | `packages/steno` | **`steno` CLI** — esbuild bundle (`cli.mjs`, `server.mjs`), copied migrations + **built UI** under `dist/` |
-| `apps/server` | Hono + tRPC server (used from source during monorepo dev; also bundled into `steno`) |
+| `apps/server` | Hono + tRPC server (used from source during monorepo dev; also bundled into `@joostwmd/steno`) |
 | `apps/ui` | Vite + React viewer (production build is copied into the `steno` package) |
 
 ## Contributing: clone and run
@@ -29,13 +49,13 @@ pnpm build
 ```
 
 - **Monorepo dev (hot reload):** `pnpm dev` — runs `@steno/server` with `tsx` and `@steno/ui` with Vite (UI at [http://127.0.0.1:5173](http://127.0.0.1:5173), API at [http://127.0.0.1:8787](http://127.0.0.1:8787)).
-- **Same as consumers (bundled CLI):** `pnpm exec steno dev` — one port serves API + static UI from the `steno` package build (after `pnpm build` or `pnpm --filter steno build`).
+- **Same as consumers (bundled CLI):** `pnpm exec steno dev` — one port serves API + static UI from the `@joostwmd/steno` build (after `pnpm build` or `pnpm --filter @joostwmd/steno build`).
 
 ### Useful scripts
 
 | Script | Purpose |
 |--------|---------|
-| `pnpm build` | Build all workspace packages (including `steno` with embedded UI) |
+| `pnpm build` | Build all workspace packages (including `@joostwmd/steno` with embedded UI) |
 | `pnpm dev` | Server + Vite UI in parallel |
 | `pnpm test` | Vitest in `@steno/core` and `@steno/api` |
 | `pnpm steno:ingest` | Run `steno ingest` (expects stdin JSON from a hook) |
@@ -73,12 +93,12 @@ Point hooks at your package manager so `steno ingest` runs with the repo root as
 Scaffold config, `package.json` scripts, and hooks interactively:
 
 ```bash
-npx steno init
+pnpm exec steno init
 # or non-interactive:
-npx steno init --yes
+pnpm exec steno init --yes
 ```
 
-Run `npx steno help` for all `init` flags.
+Run `pnpm exec steno help` for all `init` flags. `steno init` adds a **`devDependency` on `@joostwmd/steno`**; by default **`--steno-version`** matches the version of the running CLI (from its `package.json`).
 
 ## CLI commands (`steno`)
 
@@ -90,25 +110,39 @@ Run `npx steno help` for all `init` flags.
 | `steno dev --build` | In a monorepo that contains `apps/ui`, run `pnpm --filter @steno/ui build` first; otherwise uses bundled UI. |
 | `steno help` | Usage. |
 
-From a project that depends on `steno`, use **`npx steno …`** or npm scripts so `node_modules/.bin` is used.
+From a project that depends on `@joostwmd/steno`, use **`pnpm exec steno`** / **`npx steno`** or npm scripts so `node_modules/.bin` is used.
 
-## Building the installable tarball
+## Building and testing the installable tarball
 
-From the monorepo:
+From `packages/steno` (runs `prepack` → full build):
 
 ```bash
 cd packages/steno
 pnpm pack --pack-destination /tmp
 ```
 
-`prepack` runs a full `steno` build (workspace libs + esbuild + Vite UI + `dist/ui`). Install elsewhere:
+Install elsewhere:
 
 ```bash
 cd /path/to/other-project
-npm install /tmp/steno-0.1.0.tgz
+npm install /tmp/joostwmd-steno-0.1.0.tgz
 npx steno help
 npx steno dev
 ```
+
+## Publishing to npm (`@joostwmd/steno`)
+
+1. **npm account:** Use (or create) the **`joostwmd`** npm user or org so the **`@joostwmd`** scope is yours. Enable **two-factor authentication** on npm.
+2. **Login:** `npm login` locally, or configure **Trusted Publishers (OIDC)** on the npm package and GitHub (see [npm trusted publishers](https://docs.npmjs.com/trusted-publishers)).
+3. **Publish from repo root:**
+
+   ```bash
+   pnpm publish --filter @joostwmd/steno --access public
+   ```
+
+   Scoped packages must be published **`public`** unless you use a private registry.
+
+4. **CI:** [`.github/workflows/publish-npm.yml`](.github/workflows/publish-npm.yml) builds and runs `pnpm publish --filter @joostwmd/steno --access public --no-git-checks --provenance`. Add an **`NPM_TOKEN`** repository secret (automation token) unless you switch the job to pure OIDC per npm’s docs.
 
 ## Environment variables (reference)
 
@@ -123,4 +157,4 @@ Legacy aliases `STENOGRAPHER_*` may still be read where noted in code.
 
 ## License
 
-See `package.json` / repository policy when you add one.
+MIT — see [LICENSE](LICENSE).

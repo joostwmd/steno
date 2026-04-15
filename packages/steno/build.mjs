@@ -6,6 +6,34 @@ import { fileURLToPath } from "node:url";
 
 const pkgRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(pkgRoot, "..", "..");
+
+/** Resolve `@steno/*` to built `dist/*.js` so the publishable package needs no workspace devDependencies. */
+function stenoWorkspacePlugin() {
+  const roots = {
+    core: join(repoRoot, "packages", "core"),
+    api: join(repoRoot, "packages", "api"),
+    db: join(repoRoot, "packages", "db"),
+  };
+  return {
+    name: "steno-workspace",
+    setup(build) {
+      build.onResolve({ filter: /^@steno\/(core|api|db)$/ }, (args) => {
+        const name = args.path.slice("@steno/".length);
+        const root = roots[name];
+        if (!root) return;
+        return { path: join(root, "dist", "index.js") };
+      });
+      build.onResolve({ filter: /^@steno\/(core|api|db)\// }, (args) => {
+        const m = args.path.match(/^@steno\/(core|api|db)\/(.+)$/);
+        if (!m) return;
+        const [, name, sub] = m;
+        const root = roots[name];
+        if (!root) return;
+        return { path: join(root, "dist", `${sub}.js`) };
+      });
+    },
+  };
+}
 const outDir = join(pkgRoot, "dist");
 const drizzleSrc = join(repoRoot, "packages", "db", "drizzle");
 const drizzleDest = join(outDir, "drizzle");
@@ -44,6 +72,7 @@ mkdirSync(outDir, { recursive: true });
 
 await esbuild.build({
   ...common,
+  plugins: [stenoWorkspacePlugin()],
   entryPoints: [join(pkgRoot, "src", "cli.ts")],
   outfile: join(outDir, "cli.mjs"),
   banner: { js: "#!/usr/bin/env node\n" },
@@ -51,6 +80,7 @@ await esbuild.build({
 
 await esbuild.build({
   ...common,
+  plugins: [stenoWorkspacePlugin()],
   entryPoints: [join(repoRoot, "apps", "server", "src", "index.ts")],
   outfile: join(outDir, "server.mjs"),
 });

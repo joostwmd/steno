@@ -15,10 +15,12 @@ import {
   GlobalDailyStackedPromptsRepliesChart,
 } from "./GlobalDailyBarChart";
 import { CompositionPieChart } from "./CompositionPieChart";
+import {
+  formatCompactNumber,
+  formatFullNumber,
+} from "@/lib/formatCompactNumber";
 import { formatDurationMs } from "./formatDuration";
 import { pieDataFromSeries } from "./pieDataFromSeries";
-
-const numFmt = new Intl.NumberFormat();
 
 function sessionTitle(h: GlobalSessionHighlight | null): string {
   if (!h) return "—";
@@ -30,12 +32,15 @@ function RecordStat({
   icon,
   highlight,
   valueLabel,
+  valueTitle,
   onSelectSession,
 }: {
   title: string;
   icon: ReactNode;
   highlight: GlobalSessionHighlight | null;
   valueLabel: string;
+  /** Exact numeric value when `valueLabel` is abbreviated. */
+  valueTitle?: string;
   onSelectSession: (id: string) => void;
 }) {
   return (
@@ -44,22 +49,25 @@ function RecordStat({
       <StatIndicator variant="icon" color="default">
         {icon}
       </StatIndicator>
-      <StatValue className="text-base tabular-nums">{valueLabel}</StatValue>
-      <StatDescription className="space-y-1">
+      <StatValue className="text-xl tabular-nums" title={valueTitle}>
+        {valueLabel}
+      </StatValue>
+      <StatDescription>
         {highlight ? (
-          <>
-            <div className="line-clamp-2 font-medium text-foreground">
+          <div className="flex flex-col gap-2">
+            <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
               {sessionTitle(highlight)}
-            </div>
+            </p>
             <Button
               type="button"
-              variant="link"
-              className="h-auto p-0 text-xs"
+              variant="outline"
+              size="sm"
+              className="h-8 w-fit shrink-0 text-xs"
               onClick={() => onSelectSession(highlight.conversationId)}
             >
               Open session
             </Button>
-          </>
+          </div>
         ) : (
           "No sessions with this metric yet."
         )}
@@ -82,15 +90,7 @@ export function GlobalStatsSection({
   onSelectSession,
 }: GlobalStatsSectionProps) {
   if (isLoading) {
-    return (
-      <section
-        aria-label="Global stats"
-        className="rounded-lg border border-border bg-card p-4"
-      >
-        <h2 className="text-lg font-medium tracking-tight">Global stats</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Loading…</p>
-      </section>
-    );
+    return null;
   }
 
   if (errorMessage) {
@@ -124,9 +124,10 @@ export function GlobalStatsSection({
           {overview.totalsIncludeEstimated ? (
             <Badge
               variant="outline"
+              title="Some totals include model-reported estimates."
               className="h-5 text-[0.65rem] font-medium uppercase tracking-wide"
             >
-              Includes est.
+              Includes estimates
             </Badge>
           ) : null}
         </div>
@@ -141,7 +142,7 @@ export function GlobalStatsSection({
               <Layers className="size-3.5" aria-hidden />
             </StatIndicator>
             <StatValue className="tabular-nums">
-              {numFmt.format(overview.sessionCount)}
+              {formatCompactNumber(overview.sessionCount)}
             </StatValue>
             <StatDescription>Distinct conversation IDs in the database.</StatDescription>
           </Stat>
@@ -150,13 +151,21 @@ export function GlobalStatsSection({
             <StatIndicator variant="icon" color="default">
               <Hash className="size-3.5" aria-hidden />
             </StatIndicator>
-            <StatValue className="tabular-nums">
-              {numFmt.format(overview.eventCount)}
+            <StatValue
+              className="tabular-nums"
+              title={formatFullNumber(overview.eventCount)}
+            >
+              {formatCompactNumber(overview.eventCount)}
             </StatValue>
             <StatDescription>
-              {overview.orphanedEventCount > 0
-                ? `${numFmt.format(overview.orphanedEventCount)} without a conversation id.`
-                : "All events are tied to a session."}
+              {overview.orphanedEventCount > 0 ? (
+                <span title={formatFullNumber(overview.orphanedEventCount)}>
+                  {formatCompactNumber(overview.orphanedEventCount)} without a
+                  conversation id.
+                </span>
+              ) : (
+                "All events are tied to a session."
+              )}
             </StatDescription>
           </Stat>
           <Stat>
@@ -164,26 +173,42 @@ export function GlobalStatsSection({
             <StatIndicator variant="icon" color="info">
               <Sparkles className="size-3.5" aria-hidden />
             </StatIndicator>
-            <StatValue className="tabular-nums">
-              {numFmt.format(tokenTotal)}
+            <StatValue
+              className="tabular-nums"
+              title={formatFullNumber(tokenTotal)}
+            >
+              {formatCompactNumber(tokenTotal)}
             </StatValue>
             <StatDescription>
-              In {numFmt.format(overview.totalInput)} · Out{" "}
-              {numFmt.format(overview.totalOutput)}
+              <span title={formatFullNumber(overview.totalInput)}>
+                In {formatCompactNumber(overview.totalInput)}
+              </span>
+              {" · "}
+              <span title={formatFullNumber(overview.totalOutput)}>
+                Out {formatCompactNumber(overview.totalOutput)}
+              </span>
             </StatDescription>
           </Stat>
           <Stat>
-            <StatLabel>Prompts / replies / tool failures</StatLabel>
+            <StatLabel>Prompts · replies · failures</StatLabel>
             <StatIndicator variant="icon" color="default">
               <MessageSquare className="size-3.5" aria-hidden />
             </StatIndicator>
-            <StatValue className="text-sm leading-snug tabular-nums">
-              {numFmt.format(overview.totalPromptSubmits)} /{" "}
-              {numFmt.format(overview.totalAgentResponses)} /{" "}
-              {numFmt.format(overview.totalToolFailures)}
+            <StatValue className="text-lg leading-snug tabular-nums">
+              <span title={formatFullNumber(overview.totalPromptSubmits)}>
+                {formatCompactNumber(overview.totalPromptSubmits)}
+              </span>
+              <span className="text-muted-foreground/80"> / </span>
+              <span title={formatFullNumber(overview.totalAgentResponses)}>
+                {formatCompactNumber(overview.totalAgentResponses)}
+              </span>
+              <span className="text-muted-foreground/80"> / </span>
+              <span title={formatFullNumber(overview.totalToolFailures)}>
+                {formatCompactNumber(overview.totalToolFailures)}
+              </span>
             </StatValue>
             <StatDescription>
-              Total prompt_submit, agent_response, and post_tool_use_failure events.
+              prompt_submit, agent_response, and post_tool_use_failure totals.
             </StatDescription>
           </Stat>
         </div>
@@ -225,8 +250,13 @@ export function GlobalStatsSection({
             highlight={records.mostTokens}
             valueLabel={
               records.mostTokens
-                ? numFmt.format(records.mostTokens.totalTokens)
+                ? formatCompactNumber(records.mostTokens.totalTokens)
                 : "—"
+            }
+            valueTitle={
+              records.mostTokens
+                ? formatFullNumber(records.mostTokens.totalTokens)
+                : undefined
             }
             onSelectSession={onSelectSession}
           />
@@ -236,8 +266,13 @@ export function GlobalStatsSection({
             highlight={records.mostEvents}
             valueLabel={
               records.mostEvents
-                ? numFmt.format(records.mostEvents.eventCount)
+                ? formatCompactNumber(records.mostEvents.eventCount)
                 : "—"
+            }
+            valueTitle={
+              records.mostEvents
+                ? formatFullNumber(records.mostEvents.eventCount)
+                : undefined
             }
             onSelectSession={onSelectSession}
           />
@@ -247,8 +282,13 @@ export function GlobalStatsSection({
             highlight={records.mostPrompts}
             valueLabel={
               records.mostPrompts
-                ? numFmt.format(records.mostPrompts.promptSubmitCount)
+                ? formatCompactNumber(records.mostPrompts.promptSubmitCount)
                 : "—"
+            }
+            valueTitle={
+              records.mostPrompts
+                ? formatFullNumber(records.mostPrompts.promptSubmitCount)
+                : undefined
             }
             onSelectSession={onSelectSession}
           />
@@ -262,34 +302,41 @@ export function GlobalStatsSection({
             <h4 className="text-xs font-semibold text-foreground">
               Top sessions by tokens
             </h4>
-            <ol className="mt-3 space-y-2 text-sm">
+            <ol className="mt-3 divide-y divide-border/60 text-sm">
               {topByTokens.length === 0 ? (
-                <li className="text-muted-foreground">No sessions yet.</li>
+                <li className="py-2 text-muted-foreground">No sessions yet.</li>
               ) : (
                 topByTokens.map((s, i) => (
-                  <li
-                    key={s.conversationId}
-                    className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 pb-2 last:border-0 last:pb-0"
-                  >
-                    <span className="text-muted-foreground tabular-nums">
-                      {i + 1}.
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">
-                        {sessionTitle(s)}
+                  <li key={s.conversationId} className="list-none py-0">
+                    <button
+                      type="button"
+                      onClick={() => onSelectSession(s.conversationId)}
+                      aria-label={`Open session: ${sessionTitle(s)}`}
+                      className="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] gap-x-3 gap-y-1 rounded-md py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:grid-cols-[1.75rem_minmax(0,1fr)_auto] sm:grid-rows-1 sm:items-center"
+                    >
+                      <span className="hidden text-muted-foreground tabular-nums sm:block sm:row-span-1">
+                        {i + 1}
+                      </span>
+                      <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2">
+                        <span className="mr-2 text-muted-foreground tabular-nums sm:hidden">
+                          {i + 1}.
+                        </span>
+                        <span className="font-medium leading-snug text-foreground">
+                          {sessionTitle(s)}
+                        </span>
                       </div>
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="h-auto p-0 text-xs"
-                        onClick={() => onSelectSession(s.conversationId)}
+                      <div
+                        className="col-span-2 text-right sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:self-center sm:text-right"
+                        title={formatFullNumber(s.totalTokens)}
                       >
-                        Open
-                      </Button>
-                    </div>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {numFmt.format(s.totalTokens)} tok
-                    </span>
+                        <span className="tabular-nums text-sm font-semibold text-foreground">
+                          {formatCompactNumber(s.totalTokens)}
+                        </span>
+                        <span className="ml-1 text-xs font-medium text-muted-foreground">
+                          tok
+                        </span>
+                      </div>
+                    </button>
                   </li>
                 ))
               )}
@@ -299,34 +346,41 @@ export function GlobalStatsSection({
             <h4 className="text-xs font-semibold text-foreground">
               Top sessions by event count
             </h4>
-            <ol className="mt-3 space-y-2 text-sm">
+            <ol className="mt-3 divide-y divide-border/60 text-sm">
               {topByEvents.length === 0 ? (
-                <li className="text-muted-foreground">No sessions yet.</li>
+                <li className="py-2 text-muted-foreground">No sessions yet.</li>
               ) : (
                 topByEvents.map((s, i) => (
-                  <li
-                    key={s.conversationId}
-                    className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 pb-2 last:border-0 last:pb-0"
-                  >
-                    <span className="text-muted-foreground tabular-nums">
-                      {i + 1}.
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">
-                        {sessionTitle(s)}
+                  <li key={s.conversationId} className="list-none py-0">
+                    <button
+                      type="button"
+                      onClick={() => onSelectSession(s.conversationId)}
+                      aria-label={`Open session: ${sessionTitle(s)}`}
+                      className="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] gap-x-3 gap-y-1 rounded-md py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:grid-cols-[1.75rem_minmax(0,1fr)_auto] sm:grid-rows-1 sm:items-center"
+                    >
+                      <span className="hidden text-muted-foreground tabular-nums sm:block">
+                        {i + 1}
+                      </span>
+                      <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2">
+                        <span className="mr-2 text-muted-foreground tabular-nums sm:hidden">
+                          {i + 1}.
+                        </span>
+                        <span className="font-medium leading-snug text-foreground">
+                          {sessionTitle(s)}
+                        </span>
                       </div>
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="h-auto p-0 text-xs"
-                        onClick={() => onSelectSession(s.conversationId)}
+                      <div
+                        className="col-span-2 text-right sm:col-span-1 sm:col-start-3 sm:self-center sm:text-right"
+                        title={formatFullNumber(s.eventCount)}
                       >
-                        Open
-                      </Button>
-                    </div>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {numFmt.format(s.eventCount)} evt
-                    </span>
+                        <span className="tabular-nums text-sm font-semibold text-foreground">
+                          {formatCompactNumber(s.eventCount)}
+                        </span>
+                        <span className="ml-1 text-xs font-medium text-muted-foreground">
+                          evt
+                        </span>
+                      </div>
+                    </button>
                   </li>
                 ))
               )}

@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import App from "./App.js";
 import "./index.css";
@@ -18,7 +19,11 @@ function Root() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="system" storageKey="steno-ui-theme">
           <TooltipProvider delayDuration={0}>
-            <App />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/:sessionId?" element={<App />} />
+              </Routes>
+            </BrowserRouter>
           </TooltipProvider>
           <Toaster richColors theme="system" />
         </ThemeProvider>

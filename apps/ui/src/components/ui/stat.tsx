@@ -3,15 +3,22 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
+/**
+ * Metric card: label + icon on one row, full-width value, full-width description.
+ * Avoids long numbers competing with the indicator column.
+ */
 function Stat({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="stat"
       className={cn(
-        "grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 rounded-lg border bg-card p-4 text-card-foreground shadow-sm",
-        "**:data-[slot=stat-label]:col-span-1 **:data-[slot=stat-value]:col-span-1",
-        "**:data-[slot=stat-indicator]:col-start-2 **:data-[slot=stat-indicator]:row-span-2 **:data-[slot=stat-indicator]:row-start-1 **:data-[slot=stat-indicator]:self-start",
-        "**:data-[slot=stat-description]:col-span-2 **:data-[slot=stat-separator]:col-span-2 **:data-[slot=stat-trend]:col-span-2",
+        "grid grid-cols-[1fr_auto] grid-rows-[auto_auto_auto] gap-x-3 gap-y-2 rounded-lg border bg-card p-4 text-card-foreground shadow-sm",
+        "[&>[data-slot=stat-label]]:col-start-1 [&>[data-slot=stat-label]]:row-start-1 [&>[data-slot=stat-label]]:min-w-0 [&>[data-slot=stat-label]]:self-center [&>[data-slot=stat-label]]:leading-snug",
+        "[&>[data-slot=stat-indicator]]:col-start-2 [&>[data-slot=stat-indicator]]:row-start-1 [&>[data-slot=stat-indicator]]:shrink-0 [&>[data-slot=stat-indicator]]:self-start",
+        "[&>[data-slot=stat-value]]:col-span-2 [&>[data-slot=stat-value]]:col-start-1 [&>[data-slot=stat-value]]:row-start-2 [&>[data-slot=stat-value]]:min-w-0",
+        "[&>[data-slot=stat-description]]:col-span-2 [&>[data-slot=stat-description]]:row-start-3 [&>[data-slot=stat-description]]:min-w-0",
+        "[&>[data-slot=stat-separator]]:col-span-2",
+        "[&>[data-slot=stat-trend]]:col-span-2",
         className,
       )}
       {...props}
@@ -83,7 +90,10 @@ function StatValue({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="stat-value"
-      className={cn("font-semibold text-2xl tracking-tight", className)}
+      className={cn(
+        "font-semibold text-2xl tracking-tight tabular-nums",
+        className,
+      )}
       {...props}
     />
   );
@@ -120,7 +130,7 @@ function StatDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="stat-description"
-      className={cn("text-muted-foreground text-xs", className)}
+      className={cn("text-muted-foreground text-xs leading-relaxed", className)}
       {...props}
     />
   );

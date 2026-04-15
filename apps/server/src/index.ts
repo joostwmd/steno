@@ -22,7 +22,7 @@ function getPort(repoRoot: string): number {
   const cfg = loadStenoConfig(repoRoot);
   const fromEnv =
     process.env.STENO_UI_PORT?.trim() ||
-    process.env.STENOGRAPHER_UI_PORT?.trim();
+    process.env.STENO_UI_PORT?.trim();
   if (fromEnv) {
     const n = Number(fromEnv);
     if (!Number.isNaN(n) && n > 0) return n;

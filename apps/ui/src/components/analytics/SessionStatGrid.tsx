@@ -13,6 +13,10 @@ import {
   StatLabel,
   StatValue,
 } from "@/components/ui/stat";
+import {
+  formatCompactNumber,
+  formatFullNumber,
+} from "@/lib/formatCompactNumber";
 import { formatDurationMs } from "./formatDuration";
 
 const numFmt = new Intl.NumberFormat();
@@ -35,14 +39,22 @@ export function SessionStatGrid({ summary }: SessionStatGridProps) {
         <StatIndicator variant="icon" color="info">
           <Hash className="size-3.5" aria-hidden />
         </StatIndicator>
-        <StatValue className="tabular-nums">
-          {numFmt.format(tokenTotal)}
+        <StatValue
+          className="tabular-nums"
+          title={formatFullNumber(tokenTotal)}
+        >
+          {formatCompactNumber(tokenTotal)}
         </StatValue>
         <StatDescription>
-          In {numFmt.format(summary.totalInput)} · Out{" "}
-          {numFmt.format(summary.totalOutput)}
+          <span title={formatFullNumber(summary.totalInput)}>
+            In {formatCompactNumber(summary.totalInput)}
+          </span>
+          {" · "}
+          <span title={formatFullNumber(summary.totalOutput)}>
+            Out {formatCompactNumber(summary.totalOutput)}
+          </span>
           {summary.totalsIncludeEstimated
-            ? " · Includes estimated usage where provider totals were missing."
+            ? " · Estimates used when the provider omitted totals."
             : null}
         </StatDescription>
       </Stat>

@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SessionEventsToolbar } from "@/components/session-events-toolbar";
 import { GlobalStatsSection } from "@/components/analytics/GlobalStatsSection";
 import { SessionAnalyticsSection } from "@/components/analytics/SessionAnalyticsSection";
-import { TokenInOutBadges } from "@/components/token-in-out-badges";
 import { SiteHeader } from "@/components/site-header";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,17 +28,23 @@ import {
   eventPassesFilters,
   toolNamesForHooks,
 } from "@/lib/sessionFilters";
-import { GLOBAL_STATS_ID, isGlobalStatsView } from "@/lib/globalStatsView";
+import { HOME_PATH, sessionPath } from "@/lib/routes";
 import { trpc } from "@/lib/trpc";
-import { Copy } from "lucide-react";
+import { Copy, Loader2 } from "lucide-react";
 
 const SYNC_UI_MIN_MS = 1250;
 const LIVE_POLL_MS = 5_000;
 
-const tokenUsageFmt = new Intl.NumberFormat();
-
 export default function App() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
+  const navigate = useNavigate();
+  const { sessionId: sessionIdParam } = useParams<{ sessionId?: string }>();
+  const sessionId = sessionIdParam
+    ? decodeURIComponent(sessionIdParam)
+    : undefined;
+  const isGlobalView = sessionId == null || sessionId === "";
+  const routeSessionIdRef = useRef(sessionId);
+  routeSessionIdRef.current = sessionId;
   const utils = trpc.useUtils();
 
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -89,7 +90,9 @@ export default function App() {
       void utils.sessions.tokenUsage.invalidate();
       void utils.analytics.session.invalidate();
       void utils.analytics.global.invalidate();
-      setSelectedId((id) => (id === conversationId ? null : id));
+      if (routeSessionIdRef.current === conversationId) {
+        void navigate(HOME_PATH);
+      }
     },
   });
 
@@ -168,19 +171,10 @@ export default function App() {
     syncMutation.mutate();
   };
 
-  const sessionQueriesEnabled =
-    Boolean(selectedId) && !isGlobalStatsView(selectedId);
+  const sessionQueriesEnabled = Boolean(sessionId);
 
   const eventsQuery = trpc.events.bySession.useQuery(
-    { conversationId: selectedId! },
-    {
-      enabled: sessionQueriesEnabled,
-      meta: { skipTrpcErrorToast: true },
-    },
-  );
-
-  const tokenUsageQuery = trpc.sessions.tokenUsage.useQuery(
-    { conversationId: selectedId! },
+    { conversationId: sessionId! },
     {
       enabled: sessionQueriesEnabled,
       meta: { skipTrpcErrorToast: true },
@@ -188,7 +182,7 @@ export default function App() {
   );
 
   const analyticsQuery = trpc.analytics.session.useQuery(
-    { conversationId: selectedId! },
+    { conversationId: sessionId! },
     {
       enabled: sessionQueriesEnabled,
       meta: { skipTrpcErrorToast: true },
@@ -196,7 +190,7 @@ export default function App() {
   );
 
   const globalStatsQuery = trpc.analytics.global.useQuery(undefined, {
-    enabled: isGlobalStatsView(selectedId),
+    enabled: isGlobalView,
     meta: { skipTrpcErrorToast: true },
   });
 
@@ -205,7 +199,7 @@ export default function App() {
   useEffect(() => {
     setSelectedHooks(new Set());
     setSelectedTools(new Set());
-  }, [selectedId]);
+  }, [sessionId]);
 
   useEffect(() => {
     if (events.length === 0) return;
@@ -260,13 +254,13 @@ export default function App() {
 
   const selectedSession = useMemo(() => {
     const data = sessionsQuery.data;
-    if (!data || !selectedId || isGlobalStatsView(selectedId)) return null;
+    if (!data || !sessionId) return null;
     return (
-      data.pinned.find((s) => s.conversationId === selectedId) ??
-      data.unpinned.find((s) => s.conversationId === selectedId) ??
+      data.pinned.find((s) => s.conversationId === sessionId) ??
+      data.unpinned.find((s) => s.conversationId === sessionId) ??
       null
     );
-  }, [sessionsQuery.data, selectedId]);
+  }, [sessionsQuery.data, sessionId]);
 
   const toggleHook = useCallback((hook: string, checked: boolean) => {
     setSelectedHooks((prev) => {
@@ -304,9 +298,9 @@ export default function App() {
   );
 
   const handleExport = useCallback(() => {
-    if (!selectedId || !selectedSession || events.length === 0) return;
+    if (!sessionId || !selectedSession || events.length === 0) return;
     const payload = buildSessionExportPayload(
-      selectedId,
+      sessionId,
       {
         label: selectedSession.label,
         eventCount: selectedSession.eventCount,
@@ -314,26 +308,54 @@ export default function App() {
       },
       events,
     );
-    downloadSessionJson(selectedId, payload);
-  }, [selectedId, selectedSession, events]);
+    downloadSessionJson(sessionId, payload);
+  }, [sessionId, selectedSession, events]);
 
   const showEventsToolbar = Boolean(
-    selectedSession &&
+    sessionId &&
       !eventsQuery.isLoading &&
       !eventsQuery.error &&
       events.length > 0,
   );
 
+  const showMainPaneSpinner = useMemo(() => {
+    if (sessionsQuery.data === undefined && sessionsQuery.isFetching) {
+      return true;
+    }
+    if (isGlobalView) {
+      return (
+        globalStatsQuery.data === undefined && globalStatsQuery.isFetching
+      );
+    }
+    if (sessionQueriesEnabled) {
+      return eventsQuery.isPending || analyticsQuery.isPending;
+    }
+    return false;
+  }, [
+    sessionsQuery.data,
+    sessionsQuery.isFetching,
+    isGlobalView,
+    globalStatsQuery.data,
+    globalStatsQuery.isFetching,
+    sessionQueriesEnabled,
+    eventsQuery.isPending,
+    analyticsQuery.isPending,
+  ]);
+
   const sessionEventsSummary = useMemo(() => {
-    if (!selectedSession) return "";
+    if (!sessionId) return "";
     if (showEventsToolbar) {
       if (events.length > 0 && visibleEvents.length !== events.length) {
         return `${visibleEvents.length} / ${events.length} events`;
       }
       return `${events.length} events`;
     }
-    return `${selectedSession.eventCount} events`;
+    if (selectedSession) {
+      return `${selectedSession.eventCount} events`;
+    }
+    return "—";
   }, [
+    sessionId,
     selectedSession,
     showEventsToolbar,
     events.length,
@@ -353,7 +375,7 @@ export default function App() {
             <DialogHeader>
               <DialogTitle>Rename session</DialogTitle>
               <DialogDescription>
-                This name is stored locally and kept when you import new events.
+                Saved only on this computer. Imports won&apos;t overwrite it.
               </DialogDescription>
             </DialogHeader>
             <Input
@@ -361,7 +383,7 @@ export default function App() {
               value={renameDraft}
               onChange={(e) => setRenameDraft(e.target.value)}
               maxLength={500}
-              placeholder="Session name"
+              placeholder="e.g. Auth refactor — Apr 15"
               autoFocus
               aria-label="Session name"
             />
@@ -393,16 +415,13 @@ export default function App() {
         </DialogContent>
       </Dialog>
       <AppSidebar
-        globalStatsId={GLOBAL_STATS_ID}
-        onSelectGlobalStats={() => setSelectedId(GLOBAL_STATS_ID)}
+        activeSessionId={sessionId}
         pinnedSessions={sessionsQuery.data?.pinned}
         unpinnedSessions={sessionsQuery.data?.unpinned}
         isLoading={sessionsQuery.isLoading}
         errorMessage={
           sessionsQuery.error ? sessionsQuery.error.message : null
         }
-        selectedId={selectedId}
-        onSelectSession={setSelectedId}
         onPin={(conversationId) => pinMutation.mutate({ conversationId })}
         onUnpin={(conversationId) =>
           unpinMutation.mutate({ conversationId })
@@ -415,33 +434,55 @@ export default function App() {
         }
         actionsPending={sessionActionsPending}
       />
-      <SidebarInset className="flex h-svh min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <SidebarInset className="relative flex h-svh min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <SiteHeader
           autoRefresh={autoRefresh}
           onAutoRefreshChange={setAutoRefresh}
           syncPending={syncUiPending}
           onSync={() => syncMutation.mutate()}
         />
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-y-contain p-4 md:p-6">
+        {showMainPaneSpinner ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 top-14 z-20 flex items-center justify-center bg-background/75 backdrop-blur-[1px]"
+            aria-busy="true"
+            aria-label="Loading"
+          >
+            <Loader2
+              className="size-9 animate-spin text-muted-foreground motion-reduce:animate-none"
+              aria-hidden
+            />
+          </div>
+        ) : null}
+        <motion.div
+          key={isGlobalView ? "pane-global" : `pane-${sessionId ?? ""}`}
+          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-y-contain p-4 md:p-6"
+          initial={reduceMotion ? false : { opacity: 0.88, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={
+            reduceMotion
+              ? { duration: 0 }
+              : { duration: 0.22, ease: [0.25, 1, 0.5, 1] }
+          }
+        >
           <div className="min-h-0 flex-1">
-            <div className="mb-4 border-b border-border pb-3">
-              {isGlobalStatsView(selectedId) ? (
-                <div className="space-y-1">
+            <div className="mb-6 border-b border-border pb-4">
+              {isGlobalView ? (
+                <div className="space-y-1.5">
                   <h2 className="text-lg font-medium tracking-tight">
                     Global stats
                   </h2>
-                  <p className="max-w-2xl text-sm text-muted-foreground">
-                    Cross-session totals, records, leaderboards, and composition
-                    charts for everything stored locally.
+                  <p className="max-w-xl text-sm text-muted-foreground">
+                    Totals and charts across every session in your local
+                    database.
                   </p>
                 </div>
-              ) : selectedSession ? (
+              ) : (
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="min-w-0 font-mono text-[11px] text-muted-foreground">
                         <span className="break-all align-middle">
-                          {selectedSession.conversationId}
+                          {selectedSession?.conversationId ?? sessionId}
                         </span>
                         <Button
                           type="button"
@@ -449,22 +490,23 @@ export default function App() {
                           size="icon"
                           className="ml-1 inline-flex size-7 shrink-0 align-middle text-muted-foreground"
                           aria-label="Copy conversation ID"
-                          onClick={() =>
-                            void navigator.clipboard?.writeText(
-                              selectedSession.conversationId,
-                            )
-                          }
+                          onClick={() => {
+                            void navigator.clipboard?.writeText(sessionId);
+                            toast.success("Conversation ID copied");
+                          }}
                         >
                           <Copy className="size-3.5" aria-hidden />
                         </Button>
                       </div>
                       <h2 className="text-lg font-medium tracking-tight">
-                        {selectedSession.label || "Untitled session"}
+                        {selectedSession?.label || "Untitled session"}
                       </h2>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                         <span>
-                          Last activity{" "}
-                          {formatTimestampHuman(selectedSession.lastEventAt)}
+                          Last event{" "}
+                          {selectedSession
+                            ? formatTimestampHuman(selectedSession.lastEventAt)
+                            : "—"}
                         </span>
                         <span
                           className="select-none text-muted-foreground/50"
@@ -498,120 +540,11 @@ export default function App() {
                         : null
                     }
                   />
-
-                  {tokenUsageQuery.isLoading ? (
-                    <section
-                      aria-label="Token usage"
-                      className="rounded-lg border border-border bg-card p-4"
-                    >
-                      <h3 className="text-xs font-semibold text-foreground">
-                        Token usage
-                      </h3>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Loading token usage…
-                      </p>
-                    </section>
-                  ) : tokenUsageQuery.error ? (
-                    <section
-                      aria-label="Token usage"
-                      className="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
-                    >
-                      <h3 className="text-xs font-semibold text-foreground">
-                        Token usage
-                      </h3>
-                      <p className="mt-2 text-xs text-destructive">
-                        Couldn&apos;t load token usage.{" "}
-                        {tokenUsageQuery.error.message}
-                      </p>
-                    </section>
-                  ) : tokenUsageQuery.data ? (
-                    tokenUsageQuery.data.total.input === 0 &&
-                    tokenUsageQuery.data.total.output === 0 ? (
-                      <section
-                        aria-label="Token usage"
-                        className="rounded-lg border border-border bg-card p-4"
-                      >
-                        <h3 className="text-xs font-semibold text-foreground">
-                          Token usage
-                        </h3>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          No token usage recorded for stored events yet.
-                        </p>
-                      </section>
-                    ) : (
-                      <section
-                        aria-label="Token usage"
-                        className="rounded-lg border border-border bg-card p-4"
-                      >
-                        <h3 className="text-xs font-semibold text-foreground">
-                          Token usage
-                        </h3>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              Total
-                            </span>
-                            <TokenInOutBadges
-                              input={tokenUsageQuery.data.total.input}
-                              output={tokenUsageQuery.data.total.output}
-                              format={tokenUsageFmt}
-                            />
-                          </div>
-                          {tokenUsageQuery.data.totalsIncludeEstimated ? (
-                            <Badge
-                              variant="outline"
-                              className="h-5 text-[0.65rem] font-medium uppercase tracking-wide"
-                            >
-                              Includes est.
-                            </Badge>
-                          ) : null}
-                        </div>
-                        {tokenUsageQuery.data.byModel.length > 0 ? (
-                          <Accordion
-                            type="single"
-                            collapsible
-                            className="mt-3 w-full rounded-md border border-border"
-                          >
-                            <AccordionItem value="by-model">
-                              <AccordionTrigger className="px-3 py-2 text-xs hover:no-underline">
-                                By model
-                              </AccordionTrigger>
-                              <AccordionContent className="px-3">
-                                <ul className="list-none space-y-2 pb-1">
-                                  {tokenUsageQuery.data.byModel.map((m) => (
-                                    <li
-                                      key={m.model}
-                                      className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3"
-                                    >
-                                      <span className="min-w-0 shrink font-mono text-[11px] text-foreground">
-                                        {m.model}
-                                      </span>
-                                      <TokenInOutBadges
-                                        input={m.input}
-                                        output={m.output}
-                                        format={tokenUsageFmt}
-                                        size="sm"
-                                        variant="outline"
-                                      />
-                                    </li>
-                                  ))}
-                                </ul>
-                              </AccordionContent>
-                            </AccordionItem>
-                          </Accordion>
-                        ) : null}
-                      </section>
-                    )
-                  ) : null}
                 </div>
-              ) : (
-                <h2 className="text-lg font-medium text-muted-foreground">
-                  Select a session or Global stats
-                </h2>
               )}
             </div>
 
-            {isGlobalStatsView(selectedId) ? (
+            {isGlobalView ? (
               <GlobalStatsSection
                 data={globalStatsQuery.data}
                 isLoading={globalStatsQuery.isLoading}
@@ -620,30 +553,30 @@ export default function App() {
                     ? globalStatsQuery.error.message
                     : null
                 }
-                onSelectSession={(conversationId) =>
-                  setSelectedId(conversationId)
-                }
+                onSelectSession={(conversationId) => {
+                  void navigate(sessionPath(conversationId));
+                }}
               />
-            ) : !selectedId ? (
-              <p className="text-sm text-muted-foreground">
-                Choose a session from the sidebar to view its events, or open
-                Global stats.
-              </p>
             ) : eventsQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading events…</p>
+              <p className="text-sm text-muted-foreground">
+                Loading stored events…
+              </p>
             ) : eventsQuery.error ? (
               <p className="text-sm text-destructive">
-                Couldn&apos;t load events. {eventsQuery.error.message}
+                Events didn&apos;t load. {eventsQuery.error.message}
               </p>
             ) : !events.length ? (
               <p className="text-sm text-muted-foreground">
-                No events stored for this session yet. Try Import latest if you
-                expect new data.
+                This session has no stored events yet. Use{" "}
+                <span className="font-medium text-foreground/90">
+                  Import latest
+                </span>{" "}
+                if Cursor has already written hooks to disk.
               </p>
             ) : visibleEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No events match the current filters. Adjust filters to see
-                events.
+                Nothing matches these filters. Open Filters and turn more hook
+                or tool types back on.
               </p>
             ) : (
               <ul className="space-y-4 pb-8">
@@ -651,14 +584,14 @@ export default function App() {
                   <li key={e.id}>
                     <EventCard
                       event={e}
-                      selectedConversationId={selectedId}
+                      selectedConversationId={sessionId!}
                     />
                   </li>
                 ))}
               </ul>
             )}
           </div>
-        </div>
+        </motion.div>
       </SidebarInset>
     </SidebarProvider>
   );

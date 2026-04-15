@@ -57,9 +57,10 @@ export function SessionAnalyticsSection({
           {data.summary.totalsIncludeEstimated ? (
             <Badge
               variant="outline"
+              title="Some totals include model-reported estimates."
               className="h-5 text-[0.65rem] font-medium uppercase tracking-wide"
             >
-              Includes est.
+              Includes estimates
             </Badge>
           ) : null}
         </div>

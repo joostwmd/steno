@@ -88,7 +88,7 @@ export async function runDev(argv: string[]): Promise<void> {
   const entry = serverPath();
   if (!existsSync(entry)) {
     console.error(
-      `[steno] Missing bundled server at ${entry}. Rebuild the steno package (pnpm --filter steno build).`,
+      `[steno] Missing bundled server at ${entry}. Rebuild the steno package (pnpm --filter @joostwmd/steno build).`,
     );
     process.exitCode = 1;
     return;

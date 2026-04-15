@@ -1,5 +1,5 @@
 import { runDev } from "./dev.js";
-import { runInit } from "./init.js";
+import { readInstalledStenoPackageVersion, runInit } from "./init.js";
 import { runIngest } from "@steno/core/ingest";
 
 async function main(): Promise<void> {
@@ -40,7 +40,7 @@ init options:
   --events-path <path>  Relative NDJSON path (default: steno/events.ndjson)
   --sqlite-path <path>  Relative SQLite path (default: steno/steno.db)
   --port <n>            UI server port (default: 8787)
-  --steno-version <ver> devDependency version (default: 0.1.0)
+  --steno-version <ver> devDependency version (default: ${readInstalledStenoPackageVersion()})
 `);
     return;
   }

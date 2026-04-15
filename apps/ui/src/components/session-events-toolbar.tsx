@@ -8,6 +8,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { EventRow } from "@/event-cards/types";
 import { uniqueSortedHooks, toolNamesForHooks } from "@/lib/sessionFilters";
 import { Download, Filter } from "lucide-react";
@@ -41,7 +46,8 @@ export function SessionEventsToolbar({
             variant="outline"
             size="sm"
             disabled={hookOptions.length === 0}
-            className="gap-1.5"
+            className="gap-1.5 transition-transform active:scale-[0.98]"
+            title="Choose which hook events and tools appear in the timeline."
           >
             <Filter className="size-3.5" aria-hidden />
             Filters
@@ -72,8 +78,8 @@ export function SessionEventsToolbar({
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Tool / MCP name</DropdownMenuLabel>
               <p className="px-2 pb-1 text-[0.65rem] leading-snug text-muted-foreground">
-                When any are checked, only matching tool/MCP events (among
-                selected hooks) are shown.
+                Checked names limit tool and MCP rows to those names (within the
+                hooks you left on).
               </p>
               {toolOptions.map((t) => (
                 <DropdownMenuCheckboxItem
@@ -89,16 +95,24 @@ export function SessionEventsToolbar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="gap-1.5"
-        onClick={onExport}
-      >
-        <Download className="size-3.5" aria-hidden />
-        Export
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 transition-transform active:scale-[0.98]"
+            onClick={onExport}
+          >
+            <Download className="size-3.5" aria-hidden />
+            Export
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs">
+          Download JSON for this session — the full stored timeline, not only
+          what filters show.
+        </TooltipContent>
+      </Tooltip>
     </ButtonGroup>
   );
 }

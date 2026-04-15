@@ -8,7 +8,7 @@ import { dirname, join, resolve } from "node:path";
  */
 export function findRepoRootFrom(startDir: string): string {
   let dir = resolve(startDir);
-  for (;;) {
+  for (; ;) {
     if (existsSync(join(dir, "pnpm-workspace.yaml"))) {
       return dir;
     }
@@ -25,7 +25,7 @@ export function findRepoRootFrom(startDir: string): string {
 export function getRepoRoot(): string {
   const fromEnv =
     process.env.STENO_PROJECT?.trim() ||
-    process.env.STENOGRAPHER_PROJECT?.trim() ||
+    process.env.STENO_REPO_ROOT?.trim() ||
     process.env.CURSOR_PROJECT_DIR?.trim();
   if (fromEnv) return resolve(fromEnv);
   return findRepoRootFrom(process.cwd());
