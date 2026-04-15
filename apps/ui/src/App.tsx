@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SessionEventsToolbar } from "@/components/session-events-toolbar";
+import { SessionAnalyticsSection } from "@/components/analytics/SessionAnalyticsSection";
 import { TokenInOutBadges } from "@/components/token-in-out-badges";
 import { SiteHeader } from "@/components/site-header";
 import {
@@ -84,6 +85,7 @@ export default function App() {
       void utils.events.bySession.invalidate();
       void utils.events.recent.invalidate();
       void utils.sessions.tokenUsage.invalidate();
+      void utils.analytics.session.invalidate();
       setSelectedId((id) => (id === conversationId ? null : id));
     },
   });
@@ -134,6 +136,7 @@ export default function App() {
       void utils.events.bySession.invalidate();
       void utils.events.recent.invalidate();
       void utils.sessions.tokenUsage.invalidate();
+      void utils.analytics.session.invalidate();
       quietLivePollRef.current = false;
     },
     onError: () => {
@@ -161,8 +164,6 @@ export default function App() {
     syncMutation.mutate();
   };
 
-  const devThrowSampleErrorMutation = trpc.dev.throwSampleError.useMutation();
-
   const eventsQuery = trpc.events.bySession.useQuery(
     { conversationId: selectedId! },
     {
@@ -172,6 +173,14 @@ export default function App() {
   );
 
   const tokenUsageQuery = trpc.sessions.tokenUsage.useQuery(
+    { conversationId: selectedId! },
+    {
+      enabled: Boolean(selectedId),
+      meta: { skipTrpcErrorToast: true },
+    },
+  );
+
+  const analyticsQuery = trpc.analytics.session.useQuery(
     { conversationId: selectedId! },
     {
       enabled: Boolean(selectedId),
@@ -398,11 +407,6 @@ export default function App() {
           onAutoRefreshChange={setAutoRefresh}
           syncPending={syncUiPending}
           onSync={() => syncMutation.mutate()}
-          onDevTestErrorToast={
-            import.meta.env.DEV
-              ? () => devThrowSampleErrorMutation.mutate()
-              : undefined
-          }
         />
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-y-contain p-4 md:p-6">
           <div className="min-h-0 flex-1">
@@ -460,6 +464,16 @@ export default function App() {
                       />
                     ) : null}
                   </div>
+
+                  <SessionAnalyticsSection
+                    data={analyticsQuery.data}
+                    isLoading={analyticsQuery.isLoading}
+                    errorMessage={
+                      analyticsQuery.error
+                        ? analyticsQuery.error.message
+                        : null
+                    }
+                  />
 
                   {tokenUsageQuery.isLoading ? (
                     <section

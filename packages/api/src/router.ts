@@ -1,34 +1,14 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import { desc, eq, isNull } from "drizzle-orm";
+import { asc, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { blockedSession, events, pinnedSession, sessions } from "@steno/db";
+import { computeSessionAnalytics } from "./analytics/session.js";
 import type { ApiContext } from "./context.js";
 import { syncNdjsonToSqlite } from "./syncNdjson.js";
 
 const t = initTRPC.context<ApiContext>().create();
 
-/** Lets the UI trigger a TRPCError for toast / error-handling tests. */
-function isDevErrorHarnessEnabled(): boolean {
-  if (process.env.STENO_DEV_THROW_ERROR === "1") return true;
-  return process.env.NODE_ENV !== "production";
-}
-
 export const appRouter = t.router({
-  dev: t.router({
-    throwSampleError: t.procedure.mutation(() => {
-      if (!isDevErrorHarnessEnabled()) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Dev error harness is off in production. Set STENO_DEV_THROW_ERROR=1 to enable.",
-        });
-      }
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Deliberate API error for testing client error handling.",
-      });
-    }),
-  }),
   ingest: t.router({
     sync: t.procedure.mutation(({ ctx }) => {
       return syncNdjsonToSqlite(ctx);
@@ -204,6 +184,28 @@ export const appRouter = t.router({
         );
 
         return { total, byModel: byModelList, totalsIncludeEstimated };
+      }),
+  }),
+  analytics: t.router({
+    /**
+     * Single round-trip for summary + pie series + token time series (one DB read).
+     */
+    session: t.procedure
+      .input(z.object({ conversationId: z.string() }))
+      .query(({ ctx, input }) => {
+        const rows = ctx.db
+          .select({
+            receivedAt: events.receivedAt,
+            kind: events.kind,
+            hookEventName: events.hookEventName,
+            model: events.model,
+            detail: events.detail,
+          })
+          .from(events)
+          .where(eq(events.conversationId, input.conversationId))
+          .orderBy(asc(events.receivedAt))
+          .all();
+        return computeSessionAnalytics(rows);
       }),
   }),
   events: t.router({

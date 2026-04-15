@@ -37,9 +37,9 @@ pnpm build
 |--------|---------|
 | `pnpm build` | Build all workspace packages (including `steno` with embedded UI) |
 | `pnpm dev` | Server + Vite UI in parallel |
-| `pnpm test` | Vitest in `@steno/core` |
+| `pnpm test` | Vitest in `@steno/core` and `@steno/api` |
 | `pnpm steno:ingest` | Run `steno ingest` (expects stdin JSON from a hook) |
-| `pnpm steno:dev` | `steno dev` with `STENO_DEV_THROW_ERROR=1` (exercises API error paths) |
+| `pnpm steno:dev` | Run `steno dev` (bundled API + UI) |
 | `pnpm db:generate` / `pnpm db:push` | Drizzle (see `@steno/db`) |
 
 ## Configuration
@@ -118,7 +118,6 @@ npx steno dev
 | `STENO_UI_PORT` | Overrides `uiPort` from config. |
 | `STENO_STATIC_ROOT` | Directory with `index.html` for static + SPA fallback (set automatically by `steno dev`). |
 | `STENO_DB_MIGRATIONS_DIR` | Drizzle migrations folder (set automatically for the bundled server). |
-| `STENO_DEV_THROW_ERROR` | If `1`, API may return a test error (used by `pnpm steno:dev` in this repo). |
 
 Legacy aliases `STENOGRAPHER_*` may still be read where noted in code.
 

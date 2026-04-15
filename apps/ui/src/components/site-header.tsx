@@ -1,10 +1,4 @@
-import {
-  AlertTriangle,
-  CirclePlay,
-  CircleStop,
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
+import { CirclePlay, CircleStop, Loader2, RefreshCw } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -15,8 +9,6 @@ type SiteHeaderProps = {
   onAutoRefreshChange: (value: boolean) => void;
   syncPending: boolean;
   onSync: () => void;
-  /** When set (e.g. Vite dev), shows a control that calls `dev.throwSampleError` on the API. */
-  onDevTestErrorToast?: () => void;
 };
 
 export function SiteHeader({
@@ -24,7 +16,6 @@ export function SiteHeader({
   onAutoRefreshChange,
   syncPending,
   onSync,
-  onDevTestErrorToast,
 }: SiteHeaderProps) {
   return (
     <header className="flex h-14 w-full min-w-0 shrink-0 items-center gap-2 border-b border-border bg-background px-3">
@@ -59,22 +50,6 @@ export function SiteHeader({
           )}
           <span>Live</span>
         </button>
-
-        {onDevTestErrorToast ? (
-          <button
-            type="button"
-            aria-label="Trigger a deliberate API error to test error toasts"
-            onClick={onDevTestErrorToast}
-            className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-xl border border-dashed transition-[color,background-color,border-color]",
-              "border-amber-500/50 bg-amber-500/10 text-amber-800 hover:bg-amber-500/20",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              "dark:border-amber-400/40 dark:text-amber-200 dark:hover:bg-amber-500/15",
-            )}
-          >
-            <AlertTriangle className="size-[18px]" aria-hidden />
-          </button>
-        ) : null}
 
         <button
           type="button"

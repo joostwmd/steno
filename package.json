@@ -10,11 +10,11 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "concurrently -n server,ui -c blue,green \"pnpm --filter @steno/server dev\" \"pnpm --filter @steno/ui dev\"",
-    "test": "pnpm --filter @steno/core test",
+    "test": "pnpm --filter @steno/core test && pnpm --filter @steno/api test",
     "db:generate": "pnpm --filter @steno/db db:generate",
     "db:push": "pnpm --filter @steno/db db:push",
     "steno:ingest": "steno ingest",
-    "steno:dev": "STENO_DEV_THROW_ERROR=1 steno dev"
+    "steno:dev": "steno dev"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
