@@ -1,7 +1,7 @@
 {
   "name": "@joostwmd/steno",
-  "version": "0.1.0",
-  "description": "CLI for Cursor hook telemetry — NDJSON log, SQLite, and bundled web UI",
+  "version": "0.1.1",
+  "description": "Open Telemetry for Cursor Sessions",
   "private": false,
   "type": "module",
   "bin": {
