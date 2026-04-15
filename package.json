@@ -14,7 +14,9 @@
     "db:generate": "pnpm --filter @steno/db db:generate",
     "db:push": "pnpm --filter @steno/db db:push",
     "steno:ingest": "steno ingest",
-    "steno:dev": "steno dev"
+    "steno:dev": "steno dev",
+    "audit": "pnpm audit",
+    "audit:fix": "pnpm audit --fix"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

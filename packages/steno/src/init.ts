@@ -145,7 +145,10 @@ function patchPackageJson(
           version: "0.0.0",
           private: true,
           type: "module",
-          scripts: { "steno:ingest": "steno ingest" },
+          scripts: {
+            "steno:ingest": "steno ingest",
+            "steno:dev": "steno dev",
+          },
           devDependencies: { [STENO_NPM_PACKAGE]: `^${stenoVersion}` },
         },
         null,
@@ -165,6 +168,9 @@ function patchPackageJson(
   pkg.scripts = pkg.scripts ?? {};
   if (!pkg.scripts["steno:ingest"]) {
     pkg.scripts["steno:ingest"] = "steno ingest";
+  }
+  if (!pkg.scripts["steno:dev"]) {
+    pkg.scripts["steno:dev"] = "steno dev";
   }
 
   pkg.devDependencies = pkg.devDependencies ?? {};
@@ -310,4 +316,5 @@ export async function runInit(argv: string[]): Promise<void> {
   console.log(
     `  echo '{"hook_event_name":"stop"}' | ${pm} run steno:ingest --silent`,
   );
+  console.log(`Start the bundled UI + API with: ${pm} run steno:dev`);
 }

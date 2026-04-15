@@ -61,6 +61,9 @@ pnpm build
 | `pnpm steno:ingest` | Run `steno ingest` (expects stdin JSON from a hook) |
 | `pnpm steno:dev` | Run `steno dev` (bundled API + UI) |
 | `pnpm db:generate` / `pnpm db:push` | Drizzle (see `@steno/db`) |
+| `pnpm audit` / `pnpm audit:fix` | Security audit across the workspace (see note below). |
+
+**Dependency / security audits:** This repo uses **pnpm** and **`workspace:`** links, so plain **`npm audit` at the root** does not apply (no `package-lock.json`, and npm does not understand `workspace:*`). Use **`pnpm run audit`** instead. If npm returns **410** on audit endpoints, the registry has moved to a newer advisory API and your **pnpm** version may need an upgrade—watch [pnpm releases](https://github.com/pnpm/pnpm/releases). **GitHub Dependabot** on this repository is another good layer for alerts.
 
 ## Configuration
 
@@ -98,14 +101,14 @@ pnpm exec steno init
 pnpm exec steno init --yes
 ```
 
-Run `pnpm exec steno help` for all `init` flags. `steno init` adds a **`devDependency` on `@joostwmd/steno`**; by default **`--steno-version`** matches the version of the running CLI (from its `package.json`).
+Run `pnpm exec steno help` for all `init` flags. `steno init` adds a **`devDependency` on `@joostwmd/steno`** and scripts **`steno:ingest`** / **`steno:dev`**; by default **`--steno-version`** matches the version of the running CLI (from its `package.json`).
 
 ## CLI commands (`steno`)
 
 | Command | Description |
 |---------|-------------|
 | `steno ingest` | Read one hook JSON line from **stdin**, append NDJSON, update SQLite (default if no subcommand). |
-| `steno init` | Create `steno.config.ts`, wire `package.json` scripts, write `.cursor/hooks.json`. |
+| `steno init` | Create `steno.config.ts`, wire `package.json` scripts (`steno:ingest`, `steno:dev`), write `.cursor/hooks.json`. |
 | `steno dev` | Start bundled server: **API + UI** on `uiPort` (default **8787**). Uses **`apps/ui/dist`** if present, otherwise the **UI shipped inside the package** (`dist/ui`). |
 | `steno dev --build` | In a monorepo that contains `apps/ui`, run `pnpm --filter @steno/ui build` first; otherwise uses bundled UI. |
 | `steno help` | Usage. |

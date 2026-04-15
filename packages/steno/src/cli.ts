@@ -25,7 +25,7 @@ async function main(): Promise<void> {
 
 Usage:
   steno ingest          Read hook JSON from stdin, append NDJSON (default)
-  steno init [opts]     Scaffold steno.config.ts, package.json script, hooks
+  steno init [opts]     Scaffold steno.config.ts, package.json scripts (steno:ingest, steno:dev), hooks
   steno dev [--build]   Serve API + UI on one port (bundled UI, or apps/ui/dist if present)
   steno help            Show this message
 
