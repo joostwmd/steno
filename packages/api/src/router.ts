@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { asc, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { blockedSession, events, pinnedSession, sessions } from "@steno/db";
+import { computeGlobalAnalytics } from "./analytics/global.js";
 import { computeSessionAnalytics } from "./analytics/session.js";
 import type { ApiContext } from "./context.js";
 import { syncNdjsonToSqlite } from "./syncNdjson.js";
@@ -200,6 +201,7 @@ export const appRouter = t.router({
             hookEventName: events.hookEventName,
             model: events.model,
             detail: events.detail,
+            conversationId: events.conversationId,
           })
           .from(events)
           .where(eq(events.conversationId, input.conversationId))
@@ -207,6 +209,41 @@ export const appRouter = t.router({
           .all();
         return computeSessionAnalytics(rows);
       }),
+    global: t.procedure.query(({ ctx }) => {
+      const rows = ctx.db
+        .select({
+          receivedAt: events.receivedAt,
+          kind: events.kind,
+          hookEventName: events.hookEventName,
+          model: events.model,
+          detail: events.detail,
+          conversationId: events.conversationId,
+        })
+        .from(events)
+        .all();
+
+      const eventRows = rows.map((r) => ({
+        receivedAt: r.receivedAt,
+        kind: r.kind,
+        hookEventName: r.hookEventName,
+        model: r.model,
+        detail: r.detail,
+        conversationId: r.conversationId,
+      }));
+
+      const labelRows = ctx.db
+        .select({
+          conversationId: sessions.conversationId,
+          label: sessions.label,
+        })
+        .from(sessions)
+        .all();
+      const sessionLabels = new Map<string, string | null>(
+        labelRows.map((r) => [r.conversationId, r.label]),
+      );
+
+      return computeGlobalAnalytics(eventRows, sessionLabels);
+    }),
   }),
   events: t.router({
     bySession: t.procedure

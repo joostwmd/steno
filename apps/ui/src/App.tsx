@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SessionEventsToolbar } from "@/components/session-events-toolbar";
+import { GlobalStatsSection } from "@/components/analytics/GlobalStatsSection";
 import { SessionAnalyticsSection } from "@/components/analytics/SessionAnalyticsSection";
 import { TokenInOutBadges } from "@/components/token-in-out-badges";
 import { SiteHeader } from "@/components/site-header";
@@ -32,6 +33,7 @@ import {
   eventPassesFilters,
   toolNamesForHooks,
 } from "@/lib/sessionFilters";
+import { GLOBAL_STATS_ID, isGlobalStatsView } from "@/lib/globalStatsView";
 import { trpc } from "@/lib/trpc";
 import { Copy } from "lucide-react";
 
@@ -86,6 +88,7 @@ export default function App() {
       void utils.events.recent.invalidate();
       void utils.sessions.tokenUsage.invalidate();
       void utils.analytics.session.invalidate();
+      void utils.analytics.global.invalidate();
       setSelectedId((id) => (id === conversationId ? null : id));
     },
   });
@@ -137,6 +140,7 @@ export default function App() {
       void utils.events.recent.invalidate();
       void utils.sessions.tokenUsage.invalidate();
       void utils.analytics.session.invalidate();
+      void utils.analytics.global.invalidate();
       quietLivePollRef.current = false;
     },
     onError: () => {
@@ -164,10 +168,13 @@ export default function App() {
     syncMutation.mutate();
   };
 
+  const sessionQueriesEnabled =
+    Boolean(selectedId) && !isGlobalStatsView(selectedId);
+
   const eventsQuery = trpc.events.bySession.useQuery(
     { conversationId: selectedId! },
     {
-      enabled: Boolean(selectedId),
+      enabled: sessionQueriesEnabled,
       meta: { skipTrpcErrorToast: true },
     },
   );
@@ -175,7 +182,7 @@ export default function App() {
   const tokenUsageQuery = trpc.sessions.tokenUsage.useQuery(
     { conversationId: selectedId! },
     {
-      enabled: Boolean(selectedId),
+      enabled: sessionQueriesEnabled,
       meta: { skipTrpcErrorToast: true },
     },
   );
@@ -183,10 +190,15 @@ export default function App() {
   const analyticsQuery = trpc.analytics.session.useQuery(
     { conversationId: selectedId! },
     {
-      enabled: Boolean(selectedId),
+      enabled: sessionQueriesEnabled,
       meta: { skipTrpcErrorToast: true },
     },
   );
+
+  const globalStatsQuery = trpc.analytics.global.useQuery(undefined, {
+    enabled: isGlobalStatsView(selectedId),
+    meta: { skipTrpcErrorToast: true },
+  });
 
   const events = eventsQuery.data ?? [];
 
@@ -248,7 +260,7 @@ export default function App() {
 
   const selectedSession = useMemo(() => {
     const data = sessionsQuery.data;
-    if (!data || !selectedId) return null;
+    if (!data || !selectedId || isGlobalStatsView(selectedId)) return null;
     return (
       data.pinned.find((s) => s.conversationId === selectedId) ??
       data.unpinned.find((s) => s.conversationId === selectedId) ??
@@ -381,6 +393,8 @@ export default function App() {
         </DialogContent>
       </Dialog>
       <AppSidebar
+        globalStatsId={GLOBAL_STATS_ID}
+        onSelectGlobalStats={() => setSelectedId(GLOBAL_STATS_ID)}
         pinnedSessions={sessionsQuery.data?.pinned}
         unpinnedSessions={sessionsQuery.data?.unpinned}
         isLoading={sessionsQuery.isLoading}
@@ -411,7 +425,17 @@ export default function App() {
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-y-contain p-4 md:p-6">
           <div className="min-h-0 flex-1">
             <div className="mb-4 border-b border-border pb-3">
-              {selectedSession ? (
+              {isGlobalStatsView(selectedId) ? (
+                <div className="space-y-1">
+                  <h2 className="text-lg font-medium tracking-tight">
+                    Global stats
+                  </h2>
+                  <p className="max-w-2xl text-sm text-muted-foreground">
+                    Cross-session totals, records, leaderboards, and composition
+                    charts for everything stored locally.
+                  </p>
+                </div>
+              ) : selectedSession ? (
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <div className="min-w-0 flex-1 space-y-1">
@@ -582,14 +606,28 @@ export default function App() {
                 </div>
               ) : (
                 <h2 className="text-lg font-medium text-muted-foreground">
-                  Select a session
+                  Select a session or Global stats
                 </h2>
               )}
             </div>
 
-            {!selectedId ? (
+            {isGlobalStatsView(selectedId) ? (
+              <GlobalStatsSection
+                data={globalStatsQuery.data}
+                isLoading={globalStatsQuery.isLoading}
+                errorMessage={
+                  globalStatsQuery.error
+                    ? globalStatsQuery.error.message
+                    : null
+                }
+                onSelectSession={(conversationId) =>
+                  setSelectedId(conversationId)
+                }
+              />
+            ) : !selectedId ? (
               <p className="text-sm text-muted-foreground">
-                Choose a session from the sidebar to view its events.
+                Choose a session from the sidebar to view its events, or open
+                Global stats.
               </p>
             ) : eventsQuery.isLoading ? (
               <p className="text-sm text-muted-foreground">Loading events…</p>

@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { MoreVerticalIcon } from "lucide-react";
+import { BarChart3, MoreVerticalIcon } from "lucide-react";
 
 const ACTIVE_SESSION_MS = 60_000;
 
@@ -143,6 +143,8 @@ function SessionMenuRow({
 }
 
 type AppSidebarProps = {
+  globalStatsId: string;
+  onSelectGlobalStats: () => void;
   pinnedSessions: SessionRow[] | undefined;
   unpinnedSessions: SessionRow[] | undefined;
   isLoading: boolean;
@@ -160,6 +162,8 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar({
+  globalStatsId,
+  onSelectGlobalStats,
   pinnedSessions,
   unpinnedSessions,
   isLoading,
@@ -190,6 +194,32 @@ export function AppSidebar({
         </span>
       </SidebarHeader>
       <SidebarContent className="min-h-0 flex-1 gap-0 overflow-y-auto">
+        <SidebarGroup className="border-b border-sidebar-border pb-2">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  type="button"
+                  isActive={selectedId === globalStatsId}
+                  className={cn(
+                    "h-auto min-h-0 py-2 pl-2 pr-2",
+                    selectedId === globalStatsId &&
+                      "!bg-[var(--sidebar-selection)] !text-[var(--sidebar-selection-foreground)] hover:!bg-[var(--sidebar-selection)] hover:!text-[var(--sidebar-selection-foreground)]",
+                  )}
+                  onClick={onSelectGlobalStats}
+                >
+                  <BarChart3
+                    className="size-4 shrink-0 text-sidebar-foreground/80"
+                    aria-hidden
+                  />
+                  <span className="truncate text-left text-[13px] font-medium">
+                    Global stats
+                  </span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         {isLoading ? (
           <p className="px-4 py-3 text-xs text-muted-foreground">
             Loading sessions…

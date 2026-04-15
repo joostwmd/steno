@@ -35,7 +35,7 @@ function modelKeyFromRow(model: string | null): string {
   return t && t.length > 0 ? t : "unknown";
 }
 
-function mergeTailToOther(
+export function mergeTailToOther(
   entries: [string, number][],
   maxSegments: number,
 ): PieSegment[] {
@@ -62,11 +62,11 @@ function mergeTailToOther(
   return segments;
 }
 
-function sanitizePieId(id: string): string {
+export function sanitizePieId(id: string): string {
   return id.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64) || "segment";
 }
 
-const DURATION_KINDS = new Set([
+export const DURATION_KINDS = new Set([
   "post_tool_use",
   "shell_after",
   "mcp_after",
@@ -74,7 +74,10 @@ const DURATION_KINDS = new Set([
   "subagent_stop",
 ]);
 
-function toolDurationLabel(kind: string, detail: Record<string, unknown>): string {
+export function toolDurationLabel(
+  kind: string,
+  detail: Record<string, unknown>,
+): string {
   const toolName =
     typeof detail.tool_name === "string" && detail.tool_name.trim().length > 0
       ? detail.tool_name.trim()

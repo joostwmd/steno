@@ -1,4 +1,9 @@
 export type {
+  GlobalAnalyticsBundle,
+  GlobalDailyBucket,
+  GlobalOverview,
+  GlobalRecords,
+  GlobalSessionHighlight,
   SessionAnalyticsBundle,
   SessionPieCharts,
   SessionSummary,
