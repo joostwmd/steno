@@ -1,7 +1,14 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import prompts from "prompts";
+import { migrationsDir } from "./bundlePaths.js";
 
 /** Published npm package name (scoped). */
 export const STENO_NPM_PACKAGE = "@joostwmd/steno" as const;
@@ -48,6 +55,7 @@ type HooksFile = {
 
 function parseInitArgs(argv: string[]): {
   yes: boolean;
+  resetData: boolean;
   pm: "npm" | "pnpm" | null;
   merge: boolean;
   replace: boolean;
@@ -58,6 +66,7 @@ function parseInitArgs(argv: string[]): {
   stenoVersion: string;
 } {
   let yes = false;
+  let resetData = false;
   let pm: "npm" | "pnpm" | null = null;
   let merge = false;
   let replace = false;
@@ -70,6 +79,7 @@ function parseInitArgs(argv: string[]): {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--yes" || a === "-y") yes = true;
+    else if (a === "--reset-data") resetData = true;
     else if (a === "--merge") {
       merge = true;
       hooksModeExplicit = true;
@@ -96,6 +106,7 @@ function parseInitArgs(argv: string[]): {
 
   return {
     yes,
+    resetData,
     pm,
     merge,
     replace,
@@ -182,6 +193,97 @@ function patchPackageJson(
   }
 
   writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+}
+
+async function initSqliteWithMigrations(sqliteAbs: string): Promise<void> {
+  const prev = process.env.STENO_DB_MIGRATIONS_DIR;
+  process.env.STENO_DB_MIGRATIONS_DIR = migrationsDir();
+  try {
+    const { createDb } = await import("@steno/db");
+    const { close } = createDb(sqliteAbs);
+    close();
+  } finally {
+    if (prev === undefined) delete process.env.STENO_DB_MIGRATIONS_DIR;
+    else process.env.STENO_DB_MIGRATIONS_DIR = prev;
+  }
+}
+
+/**
+ * Create empty NDJSON log and migrated SQLite DB. If paths already exist, prompts
+ * before overwriting (data loss). With `--yes`, existing files are left alone unless
+ * `--reset-data` is passed.
+ */
+async function ensureProjectTelemetryStorage(
+  root: string,
+  eventsPath: string,
+  sqlitePath: string,
+  opts: { yes: boolean; resetData: boolean },
+): Promise<boolean> {
+  const eventsAbs = join(root, eventsPath);
+  const sqliteAbs = join(root, sqlitePath);
+  const eventsExists = existsSync(eventsAbs);
+  const sqliteExists = existsSync(sqliteAbs);
+
+  let replaceExisting = false;
+  if (eventsExists || sqliteExists) {
+    if (opts.resetData) {
+      replaceExisting = true;
+    } else if (!opts.yes) {
+      const r = await prompts({
+        type: "confirm",
+        name: "replace",
+        message:
+          "Telemetry files already exist at the configured paths. Replace them? (All local hook log and DB data at those paths will be lost.)",
+        initial: false,
+      });
+      if (r.replace === undefined) {
+        console.error("Cancelled.");
+        return false;
+      }
+      replaceExisting = Boolean(r.replace);
+    } else {
+      console.log(
+        "[steno] Telemetry files already exist; left unchanged. Run init without --yes to replace after confirmation, or pass --reset-data to overwrite non-interactively.",
+      );
+    }
+  }
+
+  let telemetrySummary: string | null = null;
+  try {
+    if (!eventsExists) {
+      writeFileSync(eventsAbs, "", "utf8");
+    } else if (replaceExisting) {
+      writeFileSync(eventsAbs, "", "utf8");
+    }
+
+    if (!sqliteExists) {
+      await initSqliteWithMigrations(sqliteAbs);
+    } else if (replaceExisting) {
+      try {
+        unlinkSync(sqliteAbs);
+      } catch {
+        // ignore — createDb may still fail with a clear error
+      }
+      await initSqliteWithMigrations(sqliteAbs);
+    }
+
+    if (!eventsExists || !sqliteExists) {
+      telemetrySummary = `[steno] Telemetry ready: ${eventsPath} (NDJSON log) and ${sqlitePath} (SQLite).`;
+    } else if (replaceExisting) {
+      telemetrySummary = `[steno] Telemetry reset: ${eventsPath} and ${sqlitePath}.`;
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[steno] Failed to create telemetry storage: ${msg}`);
+    process.exitCode = 1;
+    return false;
+  }
+
+  if (telemetrySummary) {
+    console.log(telemetrySummary);
+  }
+
+  return true;
 }
 
 function writeStenoConfig(
@@ -291,6 +393,15 @@ export async function runInit(argv: string[]): Promise<void> {
   mkdirSync(join(root, dirname(eventsPath)), { recursive: true });
   mkdirSync(join(root, dirname(sqlitePath)), { recursive: true });
 
+  const ok = await ensureProjectTelemetryStorage(root, eventsPath, sqlitePath, {
+    yes: args.yes,
+    resetData: args.resetData,
+  });
+  if (!ok) {
+    process.exitCode = 1;
+    return;
+  }
+
   writeStenoConfig(root, eventsPath, sqlitePath, port);
   patchPackageJson(root, args.stenoVersion);
 
@@ -311,7 +422,9 @@ export async function runInit(argv: string[]): Promise<void> {
 
   writeFileSync(hooksPath, `${JSON.stringify(hooksJson, null, 2)}\n`, "utf8");
 
-  console.log(`Wrote steno.config.ts, .cursor/hooks.json, updated package.json`);
+  console.log(
+    `Wrote steno.config.ts, .cursor/hooks.json, updated package.json (telemetry: ${eventsPath}, ${sqlitePath})`,
+  );
   console.log(`Run: pnpm install (or npm install), then test with:`);
   console.log(
     `  echo '{"hook_event_name":"stop"}' | ${pm} run steno:ingest --silent`,

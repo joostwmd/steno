@@ -1,24 +1,11 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 import { resolveRepoRoot } from "@steno/core/ingest";
-
-const here = dirname(fileURLToPath(import.meta.url));
-
-/** Bundled `cli.mjs`: assets sit in `dist/`. Running `tsx src/cli.ts` uses `src/` → fall back to `../dist/`. */
-function resolveBundled(name: string): string {
-  const nextToSelf = join(here, name);
-  if (existsSync(nextToSelf)) return nextToSelf;
-  return join(here, "..", "dist", name);
-}
+import { bundleDir, migrationsDir, resolveBundled } from "./bundlePaths.js";
 
 function serverPath(): string {
   return resolveBundled("server.mjs");
-}
-
-function migrationsDir(): string {
-  return resolveBundled("drizzle");
 }
 
 function monorepoUiAppPath(repoRoot: string): string {
@@ -39,9 +26,9 @@ function runUiBuild(repoRoot: string): Promise<number | null> {
 
 /** Static UI shipped next to `cli.mjs` (`dist/ui`, or `dist/ui` when running from `src/` via tsx). */
 function bundledUiDist(): string | null {
-  const nextToSelf = join(here, "ui");
+  const nextToSelf = join(bundleDir, "ui");
   if (existsSync(join(nextToSelf, "index.html"))) return nextToSelf;
-  const fallback = join(here, "..", "dist", "ui");
+  const fallback = join(bundleDir, "..", "dist", "ui");
   if (existsSync(join(fallback, "index.html"))) return fallback;
   return null;
 }

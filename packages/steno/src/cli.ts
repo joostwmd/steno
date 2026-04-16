@@ -34,6 +34,7 @@ dev options:
 
 init options:
   --yes                 Non-interactive defaults
+  --reset-data          Overwrite existing NDJSON / SQLite if present (use with care; implies data loss)
   --pm npm|pnpm         Package manager for hooks.json command
   --merge               Merge into existing .cursor/hooks.json
   --replace             Replace .cursor/hooks.json (default)

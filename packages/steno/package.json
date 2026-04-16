@@ -1,6 +1,6 @@
 {
   "name": "@joostwmd/steno",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Open Telemetry for Cursor Sessions",
   "private": false,
   "type": "module",
